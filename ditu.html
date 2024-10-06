@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>上海老电影院地图</title>
+    <script src="js/leaflet.js"></script>
+    <link rel="stylesheet" href="css/leaflet.css" />
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background-color: #dfdfdf;
+        }
+        #container {
+            display: flex;
+            height: 100%;
+        }
+        #sidebar {
+            width: 250px;
+            background-image: url('emj/baozhi.png'); /* 替换为您的导航栏背景图片 */
+            background-size: cover;
+            background-position: center;
+            color: #ecf0f1;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        #map-container {
+            flex-grow: 1;
+            position: relative;
+        }
+        #map {
+            height: 100%;
+        }
+        #info-panel {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 300px;
+            background-image: url('emj/baozhi.png'); /* 替换为您的介绍界面背景图片 */
+            background-size: cover;
+            background-position: center;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            padding: 15px;
+            display: none;
+            max-height: 80%;
+            overflow-y: auto;
+            z-index: 9999;
+        }
+        .district {
+            cursor: pointer;
+            margin-bottom: 15px;
+            padding: 10px;
+            background-color: rgba(52, 73, 94, 0.7);
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+        .district:hover {
+            background-color: rgba(41, 128, 185, 0.7);
+        }
+        .info-section {
+            margin-top: 15px;
+            border-bottom: 1px solid rgba(189, 195, 199, 0.5);
+            padding-bottom: 10px;
+        }
+        .info-title {
+            font-weight: bold;
+            cursor: pointer;
+            color: #ecf0f1;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: rgba(44, 62, 80, 0.7);
+            padding: 5px;
+            border-radius: 3px;
+        }
+        .info-title::after {
+            content: '▼';
+            font-size: 0.8em;
+        }
+        .info-title.active::after {
+            content: '▲';
+        }
+        .info-content {
+            display: none;
+            margin-top: 10px;
+            color: #ecf0f1;
+            background-color: rgba(0, 0, 0, 0.5);
+            padding: 10px;
+            border-radius: 3px;
+            z-index: 9994;
+        }
+        #search-box {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 20px;
+            border-color: black;
+            border-radius: 5px;
+            background-color: rgba(255, 255, 255);
+            z-index: 9995;
+        }
+        #timeline {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 10px;
+            border-radius: 5px;
+            display: flex;
+            gap: 10px;
+            z-index: 9996;
+        }
+        .year-btn {
+            padding: 5px 10px;
+            background-color: rgba(52, 152, 219, 0.8);
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            z-index: 9998;
+        }
+        .year-btn:hover {
+            background-color: rgba(41, 128, 185, 0.8);
+            z-index: 9997;
+        }
+        #cinema-name {
+            margin-top: 0;
+            color: #ecf0f1;
+            background-color: rgba(0, 0, 0, 0.5);
+            padding: 10px;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <!-- HTML 结构保持不变 -->
+    <div id="container">
+        <div id="sidebar">
+            <h2 style="color: black;">上海老电影院地图</h2>
+            <input type="text" id="search-box" placeholder="搜索电影院...">
+            <div class="district" onclick="showDistrict('黄浦区')">黄浦区</div>
+            <div class="district" onclick="showDistrict('徐汇区')">徐汇区</div>
+            <div class="district" onclick="showDistrict('长宁区')">长宁区</div>
+            <div class="district" onclick="showDistrict('静安区')">静安区</div>
+            <div class="district" onclick="showDistrict('普陀区')">普陀区</div>
+            <div class="district" onclick="showDistrict('普陀区')">虹口区</div>
+            <div class="district" onclick="showDistrict('普陀区')">杨浦区</div>
+            <div class="district" onclick="showDistrict('普陀区')">闵行区</div>
+            <div class="district" onclick="showDistrict('普陀区')">宝山区</div>
+            <div class="district" onclick="showDistrict('普陀区')">嘉定区</div>
+            <div class="district" onclick="showDistrict('普陀区')">浦东新区</div>
+            <div class="district" onclick="showDistrict('普陀区')">金山区</div>
+            <div class="district" onclick="showDistrict('普陀区')">松江区</div>
+            <div class="district" onclick="showDistrict('普陀区')">青浦区</div>
+            <div class="district" onclick="showDistrict('普陀区')">奉贤区</div>
+            <div class="district" onclick="showDistrict('普陀区')">崇明区</div>
+        </div>
+        <div id="map-container">
+            <div id="map"></div>
+            <div id="info-panel">
+                <h3 id="cinema-name"></h3>
+                <div class="info-section">
+                    <div class="info-title" onclick="toggleInfo('history')">历史</div>
+                    <div id="history" class="info-content"></div>
+                </div>
+                <div class="info-section">
+                    <div class="info-title" onclick="toggleInfo('architecture')">建筑特色</div>
+                    <div id="architecture" class="info-content"></div>
+                </div>
+                <div class="info-section">
+                    <div class="info-title" onclick="toggleInfo('famous-movies')">知名影片</div>
+                    <div id="famous-movies" class="info-content"></div>
+                </div>
+            </div>
+            <div id="timeline">
+                <button class="year-btn" onclick="filterByYear(1920)">1920年代</button>
+                <button class="year-btn" onclick="filterByYear(1930)">1930年代</button>
+                <button class="year-btn" onclick="filterByYear(1940)">1940年代</button>
+                <button class="year-btn" onclick="filterByYear(0)">全部</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // JavaScript 代码保持不变
+        var map = L.map('map').setView([31.2304, 121.4737], 11);
+        
+        L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/WMTS/tile/1.0.0/Canvas_World_Dark_Gray_Base/default/default028mm/{z}/{y}/{x}/', {
+            attribution: '© OpenStreetMap contributors',
+            minZoom:3,
+            maxZoom:  18,
+            crs:L.CRS.Baidu,
+            subdomains:"1,2,3,4"
+        }).addTo(map);
+
+        var cinemas = {
+            '大光明电影院': {
+                latlng: [31.2355, 121.4764],
+                district: '黄浦区',
+                year: 1930,
+                history: '始建于1930年，是上海最古老的电影院之一。',
+                architecture: '融合了中西方建筑风格，内部装饰华丽。',
+                famousMovies: '《十字街头》、《马路天使》等多部经典影片首映于此。'
+            },
+            '兰心大戏院': {
+                latlng: [31.2316, 121.4841],
+                district: '黄浦区',
+                year: 1926,
+                history: '建于1926年，原为歌剧院，后改建为电影院。',
+                architecture: '新古典主义风格，内部保留了原有的巴洛克装饰。',
+                famousMovies: '《清宫秘史》等多部著名影片在此放映。'
+            },
+            '美琪大戏院': {
+                latlng: [31.2354, 121.4595],
+                district: '静安区',
+                year: 1941,
+                history: '1941年建成，是当时上海最大的电影院。',
+                architecture: '融合了古典主义和装饰艺术风格。',
+                famousMovies: '《乱世佳人》曾在此进行亚洲首映。'
+            },
+            '上海影都': {
+                latlng: [31.2467, 121.4834],
+                district: '静安区',
+                year: 1932,
+                history: '1932年开业，曾是上海最豪华的电影院之一。',
+                architecture: '装饰艺术风格，内部装修极为奢华。',
+                famousMovies: '多部好莱坞大片在此首映，包括《乱世佳人》。'
+            },
+            '卡德莱电影院': {
+                latlng: [31.2201, 121.4548],
+                district: '徐汇区',
+                year: 1928,
+                history: '始建于1928年，是上海最早的社区电影院之一。',
+                architecture: '融合了中西方建筑元素，外观独特。',
+                famousMovies: '曾放映多部经典默片和早期有声电影。'
+            }
+        };
+
+        var markers = {};
+
+        function showDistrict(district) {
+            clearMarkers();
+            for (var cinema in cinemas) {
+                if (cinemas[cinema].district === district) {
+                    addMarker(cinema);
+                }
+            }
+        }
+
+        function addMarker(cinema) {
+            var marker = L.marker(cinemas[cinema].latlng)
+                .addTo(map)
+                .bindPopup(cinema)
+                .on('click', function(e) {
+                    showCinemaInfo(e.target.getPopup().getContent());
+                });
+            markers[cinema] = marker;
+        }
+
+        function clearMarkers() {
+            for (var cinema in markers) {
+                map.removeLayer(markers[cinema]);
+            }
+            markers = {};
+        }
+
+        function showCinemaInfo(cinemaName) {
+            var cinema = cinemas[cinemaName];
+            document.getElementById('cinema-name').textContent = cinemaName;
+            document.getElementById('history').textContent = cinema.history;
+            document.getElementById('architecture').textContent = cinema.architecture;
+            document.getElementById('famous-movies').textContent = cinema.famousMovies;
+            document.getElementById('info-panel').style.display = 'block';
+        }
+
+        function toggleInfo(sectionId) {
+            var section = document.getElementById(sectionId);
+            var title = section.previousElementSibling;
+            section.style.display = section.style.display === 'none' ? 'block' : 'none';
+            title.classList.toggle('active');
+        }
+
+        function filterByYear(year) {
+            clearMarkers();
+            for (var cinema in cinemas) {
+                if (year === 0 || Math.floor(cinemas[cinema].year / 10) * 10 === year) {
+                    addMarker(cinema);
+                }
+            }
+        }
+
+        document.getElementById('search-box').addEventListener('input', function(e) {
+            var searchTerm = e.target.value.toLowerCase();
+            clearMarkers();
+            for (var cinema in cinemas) {
+                if (cinema.toLowerCase().includes(searchTerm)) {
+                    addMarker(cinema);
+                }
+            }
+        });
+
+        // 初始化时显示所有电影院
+        filterByYear(0);
+    </script>
+</body>
+</html>
